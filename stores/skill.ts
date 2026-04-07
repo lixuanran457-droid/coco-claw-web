@@ -53,6 +53,9 @@ export interface SkillState {
     total: number
     totalPages: number
   }
+  // 新增配置相关状态
+  currencySymbol: string
+  configLoaded: boolean
 }
 
 export const useSkillStore = defineStore('skill', {
@@ -69,7 +72,10 @@ export const useSkillStore = defineStore('skill', {
       pageSize: 30,
       total: 0,
       totalPages: 0
-    }
+    },
+    // 配置相关
+    currencySymbol: '¥',
+    configLoaded: false
   }),
 
   getters: {
@@ -88,6 +94,40 @@ export const useSkillStore = defineStore('skill', {
   },
 
   actions: {
+    // 设置货币符号
+    setCurrencySymbol(symbol: string) {
+      this.currencySymbol = symbol
+      // 同步到 localStorage
+      if (typeof localStorage !== 'undefined') {
+        localStorage.setItem('currency_symbol', symbol)
+      }
+    },
+
+    // 获取系统配置
+    async fetchConfig() {
+      if (this.configLoaded) return
+      
+      try {
+        // 获取分页大小
+        const pageSizeRes = await fetch('/api/config/page-size')
+        const pageSizeResult = await pageSizeRes.json()
+        if (pageSizeResult.code === 200 && pageSizeResult.data) {
+          this.pagination.pageSize = pageSizeResult.data
+        }
+
+        // 获取货币符号
+        const currencyRes = await fetch('/api/config/currency')
+        const currencyResult = await currencyRes.json()
+        if (currencyResult.code === 200 && currencyResult.data) {
+          this.setCurrencySymbol(currencyResult.data)
+        }
+
+        this.configLoaded = true
+      } catch (error) {
+        console.error('获取配置失败:', error)
+      }
+    },
+
     // Fetch all skills with pagination
     async fetchSkills(params?: {
       page?: number
@@ -99,6 +139,11 @@ export const useSkillStore = defineStore('skill', {
       this.loading = true
       this.error = null
       try {
+        // 确保配置已加载
+        if (!this.configLoaded) {
+          await this.fetchConfig()
+        }
+
         const { data } = await api.getSkills({
           page: params?.page || this.pagination.page,
           pageSize: params?.pageSize || this.pagination.pageSize,
@@ -413,3 +458,33 @@ export const useSkillStore = defineStore('skill', {
     }
   }
 })
+
+// API functions (simplified)
+const api = {
+  async getSkills(params: any) {
+    // In real app, this would call the backend API
+    // For demo, return mock data
+    return {
+      data: {
+        skills: [],
+        pagination: { page: 1, pageSize: 30, total: 0 }
+      }
+    }
+  },
+  
+  async getSkillById(id: string) {
+    return { data: null }
+  },
+  
+  async getSkillCategories() {
+    return { data: { categories: [] } }
+  },
+  
+  async getTopSkills(limit: number) {
+    return { data: { skills: [] } }
+  },
+  
+  async getStats() {
+    return { data: null }
+  }
+}

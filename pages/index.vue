@@ -3,6 +3,23 @@
     <!-- Header -->
     <Header />
 
+    <!-- Banner Section -->
+    <section v-if="banners.length > 0" class="px-4 py-4">
+      <div class="relative overflow-hidden rounded-xl">
+        <van-swipe :autoplay="3000" indicator-color="white" class="banner-swipe">
+          <van-swipe-item v-for="banner in banners" :key="banner.id">
+            <a :href="banner.linkUrl" @click.prevent="handleBannerClick(banner)">
+              <img 
+                :src="banner.imageUrl" 
+                :alt="'Banner ' + banner.id"
+                class="w-full h-36 object-cover rounded-xl"
+              />
+            </a>
+          </van-swipe-item>
+        </van-swipe>
+      </div>
+    </section>
+
     <!-- Hero Section -->
     <section class="relative px-4 py-6 overflow-hidden">
       <!-- Background Glow -->
@@ -48,6 +65,29 @@
         :categories="skillStore.categories"
         v-model:selected-category="selectedCategory"
       />
+    </section>
+
+    <!-- Recommended Skills Section -->
+    <section v-if="recommendedSkills.length > 0" class="px-4 mb-6">
+      <div class="flex items-center justify-between mb-4">
+        <h3 class="text-lg font-bold text-cyber-text flex items-center">
+          <span class="mr-2">🔥</span>
+          热门推荐
+        </h3>
+        <NuxtLink to="/skills" class="text-sm text-cyber-primary hover:text-cyber-secondary transition-colors">
+          查看更多 →
+        </NuxtLink>
+      </div>
+
+      <div class="grid grid-cols-2 gap-3">
+        <div 
+          v-for="skill in recommendedSkills.slice(0, 4)"
+          :key="skill.id"
+          class="relative"
+        >
+          <SkillCard :skill="skill" @click="goToDetail(skill.id)" />
+        </div>
+      </div>
     </section>
 
     <!-- Top Skills Section -->
@@ -158,12 +198,108 @@ const cartStore = useCartStore()
 
 const selectedCategory = ref('all')
 
+// Banner数据
+const banners = ref<Array<{
+  id: number
+  imageUrl: string
+  linkUrl: string
+  sortOrder: number
+  isActive: number
+}>>([])
+
+// 推荐商品数据
+const recommendedSkills = ref<any[]>([])
+
+// 获取Banner列表
+const fetchBanners = async () => {
+  try {
+    const response = await fetch('/api/config/banner')
+    const result = await response.json()
+    if (result.code === 200) {
+      banners.value = result.data.filter((b: any) => b.isActive === 1)
+    }
+  } catch (error) {
+    console.error('获取Banner失败:', error)
+    // 使用默认Banner
+    banners.value = [
+      {
+        id: 1,
+        imageUrl: 'https://picsum.photos/750/300?random=1',
+        linkUrl: '/skills',
+        sortOrder: 1,
+        isActive: 1
+      },
+      {
+        id: 2,
+        imageUrl: 'https://picsum.photos/750/300?random=2',
+        linkUrl: '/skills',
+        sortOrder: 2,
+        isActive: 1
+      }
+    ]
+  }
+}
+
+// 获取推荐商品
+const fetchRecommendedSkills = async () => {
+  try {
+    const response = await fetch('/api/recommend/list')
+    const result = await response.json()
+    if (result.code === 200) {
+      recommendedSkills.value = result.data.map((item: any) => ({
+        id: item.id?.toString() || '',
+        name: item.name || '',
+        icon: item.icon || '🔧',
+        description: item.shortDesc || item.description || '',
+        price: item.price || 0,
+        originalPrice: item.originalPrice,
+        category: item.category || 'tool',
+        platform: '通用',
+        salesCount: item.sales || 0,
+        rating: item.rating || 4.5,
+        reviewCount: 0,
+        safetyLevel: 'high',
+        features: item.features ? (typeof item.features === 'string' ? item.features.split(',') : item.features) : [],
+        author: item.author || '系统推荐',
+        updateTime: item.updateTime || new Date().toISOString().split('T')[0],
+        isFeatured: true
+      }))
+    }
+  } catch (error) {
+    console.error('获取推荐商品失败:', error)
+  }
+}
+
+// 获取货币符号
+const fetchCurrencySymbol = async () => {
+  try {
+    const response = await fetch('/api/config/currency')
+    const result = await response.json()
+    if (result.code === 200) {
+      skillStore.setCurrencySymbol(result.data)
+    }
+  } catch (error) {
+    console.error('获取货币符号失败:', error)
+  }
+}
+
+// Banner点击处理
+const handleBannerClick = (banner: any) => {
+  if (banner.linkUrl) {
+    navigateTo(banner.linkUrl)
+  }
+}
+
 // Fetch initial data
 onMounted(async () => {
   await Promise.all([
     skillStore.fetchCategories(),
     skillStore.fetchTopSkills(4),
     skillStore.fetchStats(),
+    skillStore.fetchConfig(), // 获取系统配置
+    fetchBanners(),
+    fetchRecommendedSkills(),
+    fetchCurrencySymbol(),
     skillStore.fetchSkills({ pageSize: 30 })
   ])
   
@@ -210,5 +346,13 @@ useHead({
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
+}
+
+.banner-swipe {
+  border-radius: 12px;
+}
+
+.banner-swipe :deep(.van-swipe__track) {
+  border-radius: 12px;
 }
 </style>

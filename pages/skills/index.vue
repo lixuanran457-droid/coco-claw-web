@@ -113,11 +113,14 @@ const selectedCategory = ref((route.query.category as string) || 'all')
 const selectedSort = ref((route.query.sort as string) || 'default')
 const loadingMore = ref(false)
 const currentPage = ref(1)
-const pageSize = 30
+
+// 获取配置的分页大小
+const pageSize = computed(() => skillStore.pagination.pageSize)
 
 // Fetch data
 onMounted(async () => {
   await skillStore.fetchCategories()
+  await skillStore.fetchConfig() // 获取配置
   await fetchSkills()
   cartStore.loadFromLocalStorage()
 })
@@ -180,14 +183,14 @@ const filteredAndSortedSkills = computed(() => {
 const totalCount = computed(() => filteredAndSortedSkills.value.length)
 
 const hasMore = computed(() => {
-  return filteredAndSortedSkills.value.length >= currentPage.value * pageSize
+  return filteredAndSortedSkills.value.length >= currentPage.value * pageSize.value
 })
 
 // Methods
 const fetchSkills = async () => {
   await skillStore.fetchSkills({
     page: 1,
-    pageSize: pageSize * 3 // Load more initially
+    pageSize: pageSize.value * 3 // Load more initially
   })
 }
 
@@ -200,7 +203,7 @@ const loadMore = async () => {
   try {
     await skillStore.fetchSkills({
       page: currentPage.value,
-      pageSize: pageSize
+      pageSize: pageSize.value
     })
   } finally {
     loadingMore.value = false
