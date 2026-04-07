@@ -123,5 +123,144 @@ export const api = {
   getTopSkills: (limit: number = 4) => {
     const { apiClient } = useApi()
     return apiClient.get('/skills/top', { params: { limit } })
+  },
+
+  // Auth APIs
+  login: (credentials: { account: string; password: string }) => {
+    const { apiClient } = useApi()
+    return apiClient.post('/auth/login', credentials)
+  },
+
+  register: (data: {
+    username: string
+    password: string
+    phone?: string
+    email?: string
+    code?: string
+  }) => {
+    const { apiClient } = useApi()
+    return apiClient.post('/auth/register', data)
+  },
+
+  sendCode: (phone: string, type: 'register' | 'reset' = 'register') => {
+    const { apiClient } = useApi()
+    return apiClient.post('/auth/send-code', { phone, type })
+  },
+
+  resetPassword: (data: {
+    phone: string
+    code: string
+    newPassword: string
+  }) => {
+    const { apiClient } = useApi()
+    return apiClient.post('/auth/reset-password', data)
+  },
+
+  logout: () => {
+    const { apiClient } = useApi()
+    return apiClient.post('/auth/logout')
+  },
+
+  refreshToken: () => {
+    const { apiClient } = useApi()
+    return apiClient.post('/auth/refresh-token')
+  },
+
+  // User APIs
+  getUserInfo: () => {
+    const { apiClient } = useApi()
+    return apiClient.get('/user/info')
+  },
+
+  updateUserInfo: (data: {
+    nickname?: string
+    phone?: string
+    email?: string
+    avatar?: string
+    gender?: string
+    birthday?: string
+  }) => {
+    const { apiClient } = useApi()
+    return apiClient.put('/user/info', data)
+  },
+
+  uploadAvatar: (file: File) => {
+    const { apiClient } = useApi()
+    const formData = new FormData()
+    formData.append('file', file)
+    return apiClient.post('/user/avatar', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    })
+  },
+
+  // Address APIs
+  getAddresses: () => {
+    const { apiClient } = useApi()
+    return apiClient.get('/user/addresses')
+  },
+
+  addAddress: (address: {
+    name: string
+    phone: string
+    province: string
+    city: string
+    district: string
+    detail: string
+    isDefault?: boolean
+    label?: string
+  }) => {
+    const { apiClient } = useApi()
+    return apiClient.post('/user/addresses', address)
+  },
+
+  updateAddress: (id: string, address: Partial<{
+    name: string
+    phone: string
+    province: string
+    city: string
+    district: string
+    detail: string
+    isDefault: boolean
+    label: string
+  }>) => {
+    const { apiClient } = useApi()
+    return apiClient.put(`/user/addresses/${id}`, address)
+  },
+
+  deleteAddress: (id: string) => {
+    const { apiClient } = useApi()
+    return apiClient.delete(`/user/addresses/${id}`)
+  },
+
+  setDefaultAddress: (id: string) => {
+    const { apiClient } = useApi()
+    return apiClient.put(`/user/addresses/${id}/default`)
+  },
+
+  // Coupon APIs
+  getCoupons: () => {
+    const { apiClient } = useApi()
+    return apiClient.get('/user/coupons')
+  },
+
+  claimCoupon: (couponId: string) => {
+    const { apiClient } = useApi()
+    return apiClient.post('/user/coupons/claim', { couponId })
+  },
+
+  // Payment APIs
+  createPayment: (orderId: string, method: 'alipay' | 'wechat' | 'bankcard') => {
+    const { apiClient } = useApi()
+    return apiClient.post('/payment/create', { orderId, method })
+  },
+
+  getPaymentStatus: (paymentId: string) => {
+    const { apiClient } = useApi()
+    return apiClient.get(`/payment/status/${paymentId}`)
+  },
+
+  cancelPayment: (paymentId: string) => {
+    const { apiClient } = useApi()
+    return apiClient.post('/payment/cancel', { paymentId })
   }
 }

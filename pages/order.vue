@@ -162,6 +162,10 @@
           <span class="text-xl">📋</span>
           <span class="text-xs mt-1">订单</span>
         </NuxtLink>
+        <NuxtLink to="/profile" class="flex flex-col items-center p-2 text-cyber-muted hover:text-cyber-primary transition-colors">
+          <span class="text-xl">👤</span>
+          <span class="text-xs mt-1">我的</span>
+        </NuxtLink>
       </div>
     </nav>
   </div>
