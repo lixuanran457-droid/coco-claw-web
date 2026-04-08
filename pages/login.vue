@@ -270,9 +270,9 @@ const handlePasswordLogin = async () => {
   }
 }
 
-// Guest mode - redirect to home
+// Guest mode - redirect to guest query page
 const handleGuestMode = () => {
-  navigateTo('/')
+  navigateTo('/guest-query')
 }
 
 useHead({

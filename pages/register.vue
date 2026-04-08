@@ -283,9 +283,13 @@ const sendCode = async () => {
   }
 }
 
-// Next step
-const nextStep = () => {
-  if (form.value.email && form.value.code) {
+// Next step - verify captcha first
+const nextStep = async () => {
+  if (!form.value.email || !form.value.code) return
+  
+  // Verify captcha with backend
+  const result = await authStore.verifyCaptcha(form.value.email, form.value.code)
+  if (result.success) {
     currentStep.value = 2
   }
 }
