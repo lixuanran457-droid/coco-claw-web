@@ -61,38 +61,62 @@ export const useAuthStore = defineStore('auth', {
       }
     },
 
-    // Login
-    async login(credentials: {
-      account: string
-      password: string
+    // Send verification code to email
+    async sendCaptcha(email: string) {
+      this.loading = true
+      this.error = null
+
+      try {
+        // TODO: Replace with actual API call
+        // const response = await $fetch('/api/auth/captcha', {
+        //   method: 'POST',
+        //   body: { email }
+        // })
+        
+        // Mock: simulate API call
+        await new Promise(resolve => setTimeout(resolve, 500))
+        
+        return { success: true, message: '验证码已发送' }
+      } catch (error: any) {
+        this.error = error.message || '发送验证码失败'
+        return { success: false, error: this.error }
+      } finally {
+        this.loading = false
+      }
+    },
+
+    // Login with email + captcha
+    async loginByCaptcha(credentials: {
+      email: string
+      captchaCode: string
       remember?: boolean
     }) {
       this.loading = true
       this.error = null
 
       try {
-        // Mock login - replace with actual API call
-        // In production: const { api } = useApi()
-        // const response = await api.login(credentials)
+        // TODO: Replace with actual API call
+        // const response = await $fetch('/api/auth/login', {
+        //   method: 'POST',
+        //   body: {
+        //     email: credentials.email,
+        //     captchaCode: credentials.captchaCode
+        //   }
+        // })
         
-        // Simulate API call
+        // Mock: simulate API call
         await new Promise(resolve => setTimeout(resolve, 1000))
         
-        // Mock successful login
-        const mockToken = `mock_token_${Date.now()}`
+        const mockToken = `token_${Date.now()}_${Math.random().toString(36).substr(2)}`
         const mockUser = {
           id: 'user_' + Date.now(),
-          username: credentials.account,
-          phone: credentials.account,
-          email: '',
-          avatar: '',
-          nickname: credentials.account
+          email: credentials.email,
+          nickname: '用户' + Math.floor(Math.random() * 10000),
+          avatar: ''
         }
         
-        // Store token and user data
         this.setAuth(mockToken, credentials.remember ?? true)
         
-        // Also store user data
         if (process.client) {
           localStorage.setItem('user_info', JSON.stringify(mockUser))
         }
@@ -106,14 +130,58 @@ export const useAuthStore = defineStore('auth', {
       }
     },
 
-    // Register
+    // Login with email + password
+    async loginByPassword(credentials: {
+      email: string
+      password: string
+      remember?: boolean
+    }) {
+      this.loading = true
+      this.error = null
+
+      try {
+        // TODO: Replace with actual API call
+        // const response = await $fetch('/api/auth/login', {
+        //   method: 'POST',
+        //   body: {
+        //     email: credentials.email,
+        //     password: credentials.password
+        //   }
+        // })
+        
+        // Mock: simulate API call
+        await new Promise(resolve => setTimeout(resolve, 1000))
+        
+        const mockToken = `token_${Date.now()}_${Math.random().toString(36).substr(2)}`
+        const mockUser = {
+          id: 'user_' + Date.now(),
+          email: credentials.email,
+          nickname: '用户' + Math.floor(Math.random() * 10000),
+          avatar: ''
+        }
+        
+        this.setAuth(mockToken, credentials.remember ?? true)
+        
+        if (process.client) {
+          localStorage.setItem('user_info', JSON.stringify(mockUser))
+        }
+
+        return { success: true, user: mockUser }
+      } catch (error: any) {
+        this.error = error.message || '登录失败'
+        return { success: false, error: this.error }
+      } finally {
+        this.loading = false
+      }
+    },
+
+    // Register with email
     async register(data: {
-      username: string
+      email: string
+      nickname?: string
       password: string
       confirmPassword: string
-      phone?: string
-      email?: string
-      code?: string
+      captchaCode: string
     }) {
       this.loading = true
       this.error = null
@@ -125,26 +193,35 @@ export const useAuthStore = defineStore('auth', {
         return { success: false, error: this.error }
       }
 
-      // Validate password strength
-      if (data.password.length < 6) {
-        this.error = '密码长度不能少于6位'
+      // Validate password strength (8-20 characters)
+      if (data.password.length < 8 || data.password.length > 20) {
+        this.error = '密码长度必须在8-20位之间'
         this.loading = false
         return { success: false, error: this.error }
       }
 
       try {
-        // Mock register - replace with actual API call
+        // TODO: Replace with actual API call
+        // const response = await $fetch('/api/auth/register', {
+        //   method: 'POST',
+        //   body: {
+        //     email: data.email,
+        //     nickname: data.nickname,
+        //     password: data.password,
+        //     confirmPassword: data.confirmPassword,
+        //     captchaCode: data.captchaCode
+        //   }
+        // })
+        
+        // Mock: simulate API call
         await new Promise(resolve => setTimeout(resolve, 1000))
         
-        // Mock successful registration
-        const mockToken = `mock_token_${Date.now()}`
+        const mockToken = `token_${Date.now()}_${Math.random().toString(36).substr(2)}`
         const mockUser = {
           id: 'user_' + Date.now(),
-          username: data.username,
-          phone: data.phone || '',
-          email: data.email || '',
-          avatar: '',
-          nickname: data.username
+          email: data.email,
+          nickname: data.nickname || '用户' + Math.floor(Math.random() * 10000),
+          avatar: ''
         }
         
         // Auto login after registration
@@ -163,29 +240,32 @@ export const useAuthStore = defineStore('auth', {
       }
     },
 
-    // Send verification code
-    async sendCode(phone: string, type: 'register' | 'reset' = 'register') {
+    // Send forgot password email
+    async sendForgotPasswordEmail(email: string) {
       this.loading = true
       this.error = null
 
       try {
-        // Mock send code - replace with actual API call
+        // TODO: Replace with actual API call
+        // const response = await $fetch('/api/auth/forget-password', {
+        //   method: 'POST',
+        //   body: { email }
+        // })
+        
         await new Promise(resolve => setTimeout(resolve, 500))
         
-        // Simulate code sent successfully
-        return { success: true, message: '验证码已发送' }
+        return { success: true, message: '密码重置链接已发送到邮箱' }
       } catch (error: any) {
-        this.error = error.message || '发送验证码失败'
+        this.error = error.message || '发送失败'
         return { success: false, error: this.error }
       } finally {
         this.loading = false
       }
     },
 
-    // Reset password
+    // Reset password with token
     async resetPassword(data: {
-      phone: string
-      code: string
+      token: string
       newPassword: string
       confirmPassword: string
     }) {
@@ -199,8 +279,24 @@ export const useAuthStore = defineStore('auth', {
         return { success: false, error: this.error }
       }
 
+      // Validate password strength
+      if (data.newPassword.length < 8 || data.newPassword.length > 20) {
+        this.error = '密码长度必须在8-20位之间'
+        this.loading = false
+        return { success: false, error: this.error }
+      }
+
       try {
-        // Mock reset password - replace with actual API call
+        // TODO: Replace with actual API call
+        // const response = await $fetch('/api/auth/reset-password', {
+        //   method: 'POST',
+        //   body: {
+        //     token: data.token,
+        //     newPassword: data.newPassword,
+        //     confirmPassword: data.confirmPassword
+        //   }
+        // })
+        
         await new Promise(resolve => setTimeout(resolve, 1000))
         
         return { success: true, message: '密码重置成功' }
@@ -220,7 +316,6 @@ export const useAuthStore = defineStore('auth', {
         localStorage.removeItem('user_info')
       }
       
-      // Redirect to home
       navigateTo('/')
     }
   }

@@ -60,7 +60,7 @@
         </div>
       </div>
       <div class="flex justify-between mt-2 text-xs text-cyber-muted">
-        <span>验证手机</span>
+        <span>验证邮箱</span>
         <span class="mr-4">设置密码</span>
         <span>注册完成</span>
       </div>
@@ -74,26 +74,20 @@
       {{ authStore.error }}
     </div>
 
-    <!-- Step 1: Phone Verification -->
+    <!-- Step 1: Email Verification -->
     <div v-if="currentStep === 1" class="relative px-6 flex-1">
       <div class="cyber-card p-6 rounded-xl">
-        <h2 class="text-lg font-bold text-cyber-text mb-6">验证手机号</h2>
+        <h2 class="text-lg font-bold text-cyber-text mb-6">验证邮箱</h2>
 
         <div class="space-y-4">
           <div>
-            <label class="block text-sm text-cyber-muted mb-2">手机号</label>
-            <div class="flex gap-2">
-              <div class="flex-1 relative">
-                <span class="absolute left-3 top-1/2 -translate-y-1/2 text-cyber-muted">+86</span>
-                <input
-                  v-model="form.phone"
-                  type="tel"
-                  placeholder="请输入手机号"
-                  class="cyber-input pl-12"
-                  maxlength="11"
-                />
-              </div>
-            </div>
+            <label class="block text-sm text-cyber-muted mb-2">邮箱地址</label>
+            <input
+              v-model="form.email"
+              type="email"
+              placeholder="请输入邮箱地址"
+              class="cyber-input"
+            />
           </div>
 
           <div>
@@ -118,7 +112,7 @@
 
           <button 
             @click="nextStep"
-            :disabled="!form.phone || !form.code || authStore.loading"
+            :disabled="!form.email || !form.code || authStore.loading"
             class="cyber-btn w-full mt-6 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             下一步
@@ -134,14 +128,13 @@
 
         <div class="space-y-4">
           <div>
-            <label class="block text-sm text-cyber-muted mb-2">用户名</label>
+            <label class="block text-sm text-cyber-muted mb-2">昵称</label>
             <input
-              v-model="form.username"
+              v-model="form.nickname"
               type="text"
-              placeholder="请输入用户名"
+              placeholder="请输入昵称（选填）"
               class="cyber-input"
             />
-            <p class="text-xs text-cyber-muted mt-1">用户名用于登录，长度6-20个字符</p>
           </div>
 
           <div>
@@ -264,9 +257,9 @@ const countdown = ref(0)
 const showPassword = ref(false)
 
 const form = ref({
-  phone: '',
+  email: '',
   code: '',
-  username: '',
+  nickname: '',
   password: '',
   confirmPassword: '',
   agreeTerms: false
@@ -274,11 +267,11 @@ const form = ref({
 
 // Send verification code
 const sendCode = async () => {
-  if (!form.value.phone || form.value.phone.length !== 11) {
+  if (!form.value.email || !form.value.email.includes('@')) {
     return
   }
 
-  const result = await authStore.sendCode(form.value.phone, 'register')
+  const result = await authStore.sendCaptcha(form.value.email)
   if (result.success) {
     countdown.value = 60
     const timer = setInterval(() => {
@@ -292,7 +285,7 @@ const sendCode = async () => {
 
 // Next step
 const nextStep = () => {
-  if (form.value.phone && form.value.code) {
+  if (form.value.email && form.value.code) {
     currentStep.value = 2
   }
 }
@@ -308,19 +301,19 @@ const passwordStrength = computed(() => {
   if (/[a-z]/.test(password) && /[A-Z]/.test(password)) strength++
   if (/\d/.test(password) && /[^a-zA-Z0-9]/.test(password)) strength++
   
-  return strength
+  return Math.min(strength, 4)
 })
 
 const passwordStrengthText = computed(() => {
   const texts = ['', '密码太弱', '密码较弱', '密码较强', '密码很强']
-  return texts[passwordStrength.value]
+  return texts[passwordStrength.value] || '请输入密码'
 })
 
 // Can submit
 const canSubmit = computed(() => {
   return (
-    form.value.username.length >= 6 &&
-    form.value.password.length >= 6 &&
+    form.value.password.length >= 8 &&
+    form.value.password.length <= 20 &&
     form.value.password === form.value.confirmPassword &&
     form.value.agreeTerms
   )
@@ -329,11 +322,11 @@ const canSubmit = computed(() => {
 // Handle register
 const handleRegister = async () => {
   const result = await authStore.register({
-    username: form.value.username,
+    email: form.value.email,
+    nickname: form.value.nickname,
     password: form.value.password,
     confirmPassword: form.value.confirmPassword,
-    phone: form.value.phone,
-    code: form.value.code
+    captchaCode: form.value.code
   })
 
   if (result.success) {

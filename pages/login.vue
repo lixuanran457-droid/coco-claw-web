@@ -35,26 +35,26 @@
         <!-- Account Type Tabs -->
         <div class="flex mb-6 bg-cyber-darker rounded-lg p-1">
           <button 
-            @click="loginType = 'phone'"
+            @click="loginType = 'captcha'"
             :class="[
               'flex-1 py-2 rounded-lg text-sm font-medium transition-all',
-              loginType === 'phone' 
+              loginType === 'captcha' 
                 ? 'bg-cyber-gradient text-white shadow-lg' 
                 : 'text-cyber-muted hover:text-cyber-text'
             ]"
           >
-            手机号登录
+            验证码登录
           </button>
           <button 
-            @click="loginType = 'account'"
+            @click="loginType = 'password'"
             :class="[
               'flex-1 py-2 rounded-lg text-sm font-medium transition-all',
-              loginType === 'account' 
+              loginType === 'password' 
                 ? 'bg-cyber-gradient text-white shadow-lg' 
                 : 'text-cyber-muted hover:text-cyber-text'
             ]"
           >
-            账号登录
+            密码登录
           </button>
         </div>
 
@@ -66,36 +66,30 @@
           {{ authStore.error }}
         </div>
 
-        <!-- Phone Login Form -->
-        <div v-if="loginType === 'phone'" class="space-y-4">
+        <!-- Email Captcha Login Form -->
+        <div v-if="loginType === 'captcha'" class="space-y-4">
           <div>
-            <label class="block text-sm text-cyber-muted mb-2">手机号</label>
-            <div class="flex gap-2">
-              <div class="flex-1 relative">
-                <span class="absolute left-3 top-1/2 -translate-y-1/2 text-cyber-muted">+86</span>
-                <input
-                  v-model="phoneForm.phone"
-                  type="tel"
-                  placeholder="请输入手机号"
-                  class="cyber-input pl-12"
-                  maxlength="11"
-                />
-              </div>
-            </div>
+            <label class="block text-sm text-cyber-muted mb-2">邮箱</label>
+            <input
+              v-model="captchaForm.email"
+              type="email"
+              placeholder="请输入邮箱地址"
+              class="cyber-input"
+            />
           </div>
 
           <div>
             <label class="block text-sm text-cyber-muted mb-2">验证码</label>
             <div class="flex gap-2">
               <input
-                v-model="phoneForm.code"
+                v-model="captchaForm.code"
                 type="text"
                 placeholder="请输入验证码"
                 class="cyber-input flex-1"
                 maxlength="6"
               />
               <button 
-                @click="sendPhoneCode"
+                @click="sendCaptcha"
                 :disabled="countdown > 0"
                 class="px-4 py-3 rounded-lg bg-cyber-card border border-cyber-border text-cyber-primary text-sm font-medium whitespace-nowrap hover:border-cyber-primary transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
@@ -108,7 +102,7 @@
             <label class="flex items-center cursor-pointer">
               <input 
                 type="checkbox" 
-                v-model="phoneForm.remember" 
+                v-model="captchaForm.remember" 
                 class="w-4 h-4 rounded accent-cyber-primary"
               />
               <span class="ml-2 text-cyber-muted">记住登录状态</span>
@@ -119,8 +113,8 @@
           </div>
 
           <button 
-            @click="handlePhoneLogin"
-            :disabled="authStore.loading || !phoneForm.phone || !phoneForm.code"
+            @click="handleCaptchaLogin"
+            :disabled="authStore.loading || !captchaForm.email || !captchaForm.code"
             class="cyber-btn w-full mt-6 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <span v-if="authStore.loading" class="animate-spin mr-2">⟳</span>
@@ -128,14 +122,14 @@
           </button>
         </div>
 
-        <!-- Account Login Form -->
+        <!-- Password Login Form -->
         <div v-else class="space-y-4">
           <div>
-            <label class="block text-sm text-cyber-muted mb-2">用户名 / 手机号 / 邮箱</label>
+            <label class="block text-sm text-cyber-muted mb-2">邮箱</label>
             <input
-              v-model="accountForm.account"
-              type="text"
-              placeholder="请输入用户名、手机号或邮箱"
+              v-model="passwordForm.email"
+              type="email"
+              placeholder="请输入邮箱地址"
               class="cyber-input"
             />
           </div>
@@ -144,7 +138,7 @@
             <label class="block text-sm text-cyber-muted mb-2">密码</label>
             <div class="relative">
               <input
-                v-model="accountForm.password"
+                v-model="passwordForm.password"
                 :type="showPassword ? 'text' : 'password'"
                 placeholder="请输入密码"
                 class="cyber-input pr-10"
@@ -162,7 +156,7 @@
             <label class="flex items-center cursor-pointer">
               <input 
                 type="checkbox" 
-                v-model="accountForm.remember" 
+                v-model="passwordForm.remember" 
                 class="w-4 h-4 rounded accent-cyber-primary"
               />
               <span class="ml-2 text-cyber-muted">记住登录状态</span>
@@ -173,8 +167,8 @@
           </div>
 
           <button 
-            @click="handleAccountLogin"
-            :disabled="authStore.loading || !accountForm.account || !accountForm.password"
+            @click="handlePasswordLogin"
+            :disabled="authStore.loading || !passwordForm.email || !passwordForm.password"
             class="cyber-btn w-full mt-6 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <span v-if="authStore.loading" class="animate-spin mr-2">⟳</span>
@@ -193,10 +187,10 @@
         <!-- Demo Login -->
         <div class="mt-6 pt-6 border-t border-cyber-border">
           <button 
-            @click="handleDemoLogin"
+            @click="handleGuestMode"
             class="w-full py-3 rounded-lg border border-cyber-border text-cyber-muted hover:text-cyber-primary hover:border-cyber-primary transition-colors text-sm"
           >
-            演示模式登录 (免注册)
+            游客购买 (免注册)
           </button>
         </div>
       </div>
@@ -216,29 +210,29 @@ definePageMeta({
 
 const authStore = useAuthStore()
 
-const loginType = ref<'phone' | 'account'>('phone')
+const loginType = ref<'captcha' | 'password'>('captcha')
 const showPassword = ref(false)
 const countdown = ref(0)
 
-const phoneForm = ref({
-  phone: '',
+const captchaForm = ref({
+  email: '',
   code: '',
   remember: true
 })
 
-const accountForm = ref({
-  account: '',
+const passwordForm = ref({
+  email: '',
   password: '',
   remember: true
 })
 
 // Send verification code
-const sendPhoneCode = async () => {
-  if (!phoneForm.value.phone || phoneForm.value.phone.length !== 11) {
+const sendCaptcha = async () => {
+  if (!captchaForm.value.email || !captchaForm.value.email.includes('@')) {
     return
   }
 
-  const result = await authStore.sendCode(phoneForm.value.phone, 'register')
+  const result = await authStore.sendCaptcha(captchaForm.value.email)
   if (result.success) {
     countdown.value = 60
     const timer = setInterval(() => {
@@ -250,12 +244,12 @@ const sendPhoneCode = async () => {
   }
 }
 
-// Phone login
-const handlePhoneLogin = async () => {
-  const result = await authStore.login({
-    account: phoneForm.value.phone,
-    password: phoneForm.value.code,
-    remember: phoneForm.value.remember
+// Captcha login
+const handleCaptchaLogin = async () => {
+  const result = await authStore.loginByCaptcha({
+    email: captchaForm.value.email,
+    captchaCode: captchaForm.value.code,
+    remember: captchaForm.value.remember
   })
 
   if (result.success) {
@@ -263,12 +257,12 @@ const handlePhoneLogin = async () => {
   }
 }
 
-// Account login
-const handleAccountLogin = async () => {
-  const result = await authStore.login({
-    account: accountForm.value.account,
-    password: accountForm.value.password,
-    remember: accountForm.value.remember
+// Password login
+const handlePasswordLogin = async () => {
+  const result = await authStore.loginByPassword({
+    email: passwordForm.value.email,
+    password: passwordForm.value.password,
+    remember: passwordForm.value.remember
   })
 
   if (result.success) {
@@ -276,17 +270,9 @@ const handleAccountLogin = async () => {
   }
 }
 
-// Demo login
-const handleDemoLogin = async () => {
-  const result = await authStore.login({
-    account: 'demo_user',
-    password: 'demo',
-    remember: true
-  })
-
-  if (result.success) {
-    navigateTo('/')
-  }
+// Guest mode - redirect to home
+const handleGuestMode = () => {
+  navigateTo('/')
 }
 
 useHead({
