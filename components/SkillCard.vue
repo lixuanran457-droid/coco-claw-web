@@ -49,15 +49,25 @@
       <!-- Price -->
       <div class="flex items-center justify-between pt-2 border-t border-cyber-border">
         <div>
-          <span class="text-lg font-bold text-cyber-primary">¥{{ skill.price }}</span>
-          <span 
-            v-if="skill.originalPrice && skill.originalPrice > skill.price"
-            class="ml-1 text-xs text-cyber-muted line-through"
+          <!-- 免费商品显示 -->
+          <span
+            v-if="skill.priceType === 0"
+            class="text-lg font-bold text-green-400"
           >
-            ¥{{ skill.originalPrice }}
+            🆓 免费
           </span>
+          <!-- 付费商品显示 -->
+          <template v-else>
+            <span class="text-lg font-bold text-cyber-primary">¥{{ skill.price }}</span>
+            <span
+              v-if="skill.originalPrice && skill.originalPrice > skill.price"
+              class="ml-1 text-xs text-cyber-muted line-through"
+            >
+              ¥{{ skill.originalPrice }}
+            </span>
+          </template>
         </div>
-        
+
         <!-- Platform Badge -->
         <span class="text-xs px-2 py-0.5 rounded bg-cyber-card border border-cyber-border">
           {{ skill.platform }}

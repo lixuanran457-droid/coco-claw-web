@@ -6,6 +6,7 @@ export interface Skill {
   icon: string
   description: string
   price: number
+  priceType: number // 0-免费, 1-付费
   originalPrice?: number
   category: string
   platform: string
@@ -247,6 +248,7 @@ export const useSkillStore = defineStore('skill', {
           icon: '🤖',
           description: '智能表单自动填充助手，支持多种场景自动识别和填充',
           price: 99,
+          priceType: 1,
           originalPrice: 199,
           category: 'automation',
           platform: 'Chrome',
@@ -265,6 +267,7 @@ export const useSkillStore = defineStore('skill', {
           icon: '📊',
           description: '网页数据提取工具，快速抓取结构化数据',
           price: 149,
+          priceType: 1,
           category: 'data',
           platform: 'Firefox',
           salesCount: 8934,
@@ -281,6 +284,7 @@ export const useSkillStore = defineStore('skill', {
           icon: '🌐',
           description: '多语言实时翻译，支持100+语言互译',
           price: 79,
+          priceType: 1,
           originalPrice: 129,
           category: 'productivity',
           platform: 'Edge',
@@ -299,6 +303,7 @@ export const useSkillStore = defineStore('skill', {
           icon: '💰',
           description: '电商价格监控，自动提醒价格变动',
           price: 59,
+          priceType: 1,
           category: 'shopping',
           platform: 'Safari',
           salesCount: 15678,
@@ -315,6 +320,7 @@ export const useSkillStore = defineStore('skill', {
           icon: '🛡️',
           description: '强力广告拦截，保护隐私安全',
           price: 0,
+          priceType: 0,
           category: 'security',
           platform: 'All Browsers',
           salesCount: 156789,
@@ -331,6 +337,7 @@ export const useSkillStore = defineStore('skill', {
           icon: '📸',
           description: '高级截图工具，支持滚动截图和标注',
           price: 89,
+          priceType: 1,
           category: 'productivity',
           platform: 'Chrome',
           salesCount: 9876,
@@ -347,6 +354,7 @@ export const useSkillStore = defineStore('skill', {
           icon: '📝',
           description: '智能笔记管理，多端同步',
           price: 69,
+          priceType: 1,
           originalPrice: 99,
           category: 'productivity',
           platform: 'Cross-platform',
@@ -365,6 +373,7 @@ export const useSkillStore = defineStore('skill', {
           icon: '📥',
           description: '多平台视频下载，支持4K画质',
           price: 129,
+          priceType: 1,
           category: 'media',
           platform: 'Desktop',
           salesCount: 7654,
@@ -381,6 +390,7 @@ export const useSkillStore = defineStore('skill', {
           icon: '🎯',
           description: '专注模式，提高工作效率',
           price: 49,
+          priceType: 1,
           category: 'productivity',
           platform: 'All Browsers',
           salesCount: 12345,
@@ -398,6 +408,7 @@ export const useSkillStore = defineStore('skill', {
           icon: '📋',
           description: '剪贴板管理器，历史记录同步',
           price: 39,
+          priceType: 1,
           category: 'productivity',
           platform: 'Windows',
           salesCount: 8765,
@@ -414,6 +425,7 @@ export const useSkillStore = defineStore('skill', {
           icon: '🎨',
           description: '专业取色器，支持多种格式',
           price: 29,
+          priceType: 1,
           category: 'design',
           platform: 'Cross-platform',
           salesCount: 5432,
@@ -430,6 +442,7 @@ export const useSkillStore = defineStore('skill', {
           icon: '📑',
           description: '标签页管理器，分组整理',
           price: 0,
+          priceType: 0,
           category: 'productivity',
           platform: 'Chrome',
           salesCount: 45678,
