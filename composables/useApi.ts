@@ -8,6 +8,7 @@ export const useApi = () => {
   const apiClient = axios.create({
     baseURL: apiBase,
     timeout: 10000,
+    withCredentials: true, // 携带Cookie（替代手动添加Authorization Header）
     headers: {
       'Content-Type': 'application/json'
     }
@@ -16,11 +17,9 @@ export const useApi = () => {
   // Request interceptor
   apiClient.interceptors.request.use(
     (config) => {
-      // Add auth token if available
-      const token = process.client ? localStorage.getItem('auth_token') : null
-      if (token) {
-        config.headers.Authorization = `Bearer ${token}`
-      }
+      // Token现在由后端通过httpOnly Cookie管理
+      // 前端不再需要手动添加Authorization Header
+      // withCredentials: true 已经会自动携带Cookie
       return config
     },
     (error) => {
@@ -33,8 +32,12 @@ export const useApi = () => {
     (response) => response,
     (error) => {
       if (error.response?.status === 401) {
-        // Handle unauthorized
-        console.error('Unauthorized access')
+        // Handle unauthorized - 清除本地状态，让用户重新登录
+        console.error('Unauthorized access - token may be expired')
+        if (process.client) {
+          const authStore = useAuthStore()
+          authStore.clearAuth()
+        }
       }
       return Promise.reject(error)
     }

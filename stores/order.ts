@@ -1,4 +1,5 @@
 import { defineStore } from 'pinia'
+import { useAuthStore } from './auth'
 
 export interface OrderItem {
   id: number
@@ -49,10 +50,9 @@ export const useOrderStore = defineStore('order', {
 
   getters: {
     isAuthenticated: () => {
-      if (process.client) {
-        return localStorage.getItem('auth_isLoggedIn') === 'true'
-      }
-      return false
+      // 从auth store获取登录状态（依赖Cookie中的Token）
+      const authStore = useAuthStore()
+      return authStore.isLoggedIn
     }
   },
 
@@ -67,18 +67,11 @@ export const useOrderStore = defineStore('order', {
       this.error = null
 
       try {
-        // Get userId from localStorage if logged in
+        // Get userId from auth store if logged in
         let userId: number | null = null
-        if (process.client) {
-          const userStr = localStorage.getItem('user_info')
-          if (userStr) {
-            try {
-              const user = JSON.parse(userStr)
-              userId = user.id
-            } catch {
-              // ignore
-            }
-          }
+        const authStore = useAuthStore()
+        if (authStore.isLoggedIn && authStore.user) {
+          userId = authStore.user.id
         }
 
         // Build request body
@@ -104,7 +97,8 @@ export const useOrderStore = defineStore('order', {
           headers: {
             'Content-Type': 'application/json'
           },
-          body
+          body,
+          credentials: 'include' // 携带Cookie
         })
 
         if (response.code === 200) {
@@ -126,7 +120,9 @@ export const useOrderStore = defineStore('order', {
         const response = await $fetch<{
           code: number
           data: any
-        }>(`${API_BASE_URL}/payment/status/${orderId}`)
+        }>(`${API_BASE_URL}/payment/status/${orderId}`, {
+          credentials: 'include'
+        })
 
         if (response.code === 200) {
           return { success: true, data: response.data }
@@ -161,7 +157,8 @@ export const useOrderStore = defineStore('order', {
             page: params?.page || this.page,
             pageSize: params?.pageSize || this.pageSize,
             status: params?.status
-          }
+          },
+          credentials: 'include' // 携带Cookie
         })
 
         if (response.code === 200) {
@@ -186,7 +183,9 @@ export const useOrderStore = defineStore('order', {
         const response = await $fetch<{
           code: number
           data: Order
-        }>(`${API_BASE_URL}/orders/${orderId}`)
+        }>(`${API_BASE_URL}/orders/${orderId}`, {
+          credentials: 'include' // 携带Cookie
+        })
 
         if (response.code === 200) {
           this.currentOrder = response.data
@@ -208,7 +207,8 @@ export const useOrderStore = defineStore('order', {
           code: number
           message: string
         }>(`${API_BASE_URL}/orders/${orderId}/cancel`, {
-          method: 'POST'
+          method: 'POST',
+          credentials: 'include' // 携带Cookie
         })
 
         if (response.code === 200) {
@@ -237,7 +237,8 @@ export const useOrderStore = defineStore('order', {
           message: string
         }>(`${API_BASE_URL}/orders/guest/send-captcha`, {
           method: 'POST',
-          params: { email }
+          params: { email },
+          credentials: 'include'
         })
 
         if (response.code === 200) {
@@ -274,7 +275,8 @@ export const useOrderStore = defineStore('order', {
             page: params?.page || 1,
             pageSize: params?.pageSize || 10,
             status: params?.status
-          }
+          },
+          credentials: 'include'
         })
 
         if (response.code === 200) {

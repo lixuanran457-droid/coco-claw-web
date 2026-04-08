@@ -25,47 +25,55 @@ export const useAuthStore = defineStore('auth', {
   }),
 
   getters: {
-    isAuthenticated: (state) => state.isLoggedIn && !!state.token,
+    isAuthenticated: (state) => state.isLoggedIn && !!state.user,
     
     getToken: (state) => state.token
   },
 
   actions: {
-    // Initialize auth state from localStorage
-    initAuth() {
+    // Initialize auth state
+    // Token从Cookie读取（httpOnly），用户信息从/api/auth/me获取
+    async initAuth() {
       if (process.client) {
-        const token = localStorage.getItem('auth_token')
-        const isLoggedIn = localStorage.getItem('auth_isLoggedIn') === 'true'
-        const userStr = localStorage.getItem('user_info')
-        
-        if (token) {
-          this.token = token
-          this.isLoggedIn = isLoggedIn
-          if (userStr) {
-            try {
-              this.user = JSON.parse(userStr)
-            } catch (e) {
-              // ignore parse error
+        this.loading = true
+        try {
+          // 尝试从API获取用户信息（依赖Cookie中的Token）
+          const response = await $fetch<{
+            code: number
+            data: {
+              id: number
+              email: string
+              nickname: string
+              avatar: string
             }
+          }>(`${API_BASE_URL}/auth/me`, {
+            credentials: 'include' // 携带Cookie
+          })
+
+          if (response.code === 200 && response.data) {
+            this.user = response.data
+            this.isLoggedIn = true
+            this.token = 'from_cookie' // 标记Token来自Cookie
+          } else {
+            this.clearAuth()
           }
+        } catch (error: any) {
+          // 未登录或Token失效
+          this.clearAuth()
+        } finally {
+          this.loading = false
         }
       }
     },
 
     // Set token and login state
+    // 注意：Token现在由后端设置到Cookie中，前端不再存储
     setAuth(token: string, user: any, remember: boolean = true) {
       this.token = token
       this.isLoggedIn = true
       this.error = null
       this.user = user
-
-      if (process.client) {
-        localStorage.setItem('auth_token', token)
-        localStorage.setItem('user_info', JSON.stringify(user))
-        if (remember) {
-          localStorage.setItem('auth_isLoggedIn', 'true')
-        }
-      }
+      // 注意：不再存储到localStorage，Token由httpOnly Cookie管理
     },
 
     // Clear auth state (logout)
@@ -76,6 +84,7 @@ export const useAuthStore = defineStore('auth', {
       this.user = null
 
       if (process.client) {
+        // 清理localStorage中的旧数据（兼容旧版）
         localStorage.removeItem('auth_token')
         localStorage.removeItem('auth_isLoggedIn')
         localStorage.removeItem('user_info')
@@ -90,7 +99,8 @@ export const useAuthStore = defineStore('auth', {
       try {
         const response = await $fetch<{ code: number; message: string }>(`${API_BASE_URL}/auth/captcha`, {
           method: 'POST',
-          params: { email }
+          params: { email },
+          credentials: 'include'
         })
         
         if (response.code === 200) {
@@ -111,28 +121,26 @@ export const useAuthStore = defineStore('auth', {
       this.error = null
 
       try {
-        // Use login API to verify captcha
         const response = await $fetch<{ code: number; message: string }>(`${API_BASE_URL}/auth/login`, {
           method: 'POST',
           body: {
             email: email,
             captchaCode: code
-          }
+          },
+          credentials: 'include'
         })
 
-        // If code is 401, it means captcha is wrong (user doesn't exist)
-        // But we need a dedicated verify endpoint
-        // For now, we'll trust the registration will validate it
         return { success: true }
       } catch (error: any) {
-        // If login fails because user doesn't exist, captcha might be valid
-        // But if captcha is wrong, it will fail with specific message
         const message = error.data?.message || ''
         if (message.includes('验证码') || message.includes('过期')) {
           this.error = message
           return { success: false, error: message }
         }
-        // Other errors (like user doesn't exist) mean captcha is valid
+        // 用户不存在说明验证码正确
+        if (message.includes('用户不存在')) {
+          return { success: true }
+        }
         return { success: true }
       }
     },
@@ -166,11 +174,17 @@ export const useAuthStore = defineStore('auth', {
           body: {
             email: credentials.email,
             captchaCode: credentials.captchaCode
-          }
+          },
+          credentials: 'include' // 携带Cookie
         })
 
         if (response.code === 200) {
+          // 后端已设置Cookie，前端只需存储用户信息
           this.setAuth(response.data.accessToken, response.data.user, credentials.remember ?? true)
+          // 存储用户信息到localStorage（用于页面刷新时快速显示）
+          if (process.client) {
+            localStorage.setItem('user_info', JSON.stringify(response.data.user))
+          }
           return { success: true, user: response.data.user }
         } else {
           throw new Error(response.message || '登录失败')
@@ -212,11 +226,17 @@ export const useAuthStore = defineStore('auth', {
           body: {
             email: credentials.email,
             password: credentials.password
-          }
+          },
+          credentials: 'include' // 携带Cookie
         })
 
         if (response.code === 200) {
+          // 后端已设置Cookie，前端只需存储用户信息
           this.setAuth(response.data.accessToken, response.data.user, credentials.remember ?? true)
+          // 存储用户信息到localStorage（用于页面刷新时快速显示）
+          if (process.client) {
+            localStorage.setItem('user_info', JSON.stringify(response.data.user))
+          }
           return { success: true, user: response.data.user }
         } else {
           throw new Error(response.message || '登录失败')
@@ -283,11 +303,17 @@ export const useAuthStore = defineStore('auth', {
             password: data.password,
             confirmPassword: data.confirmPassword,
             captchaCode: data.captchaCode
-          }
+          },
+          credentials: 'include' // 携带Cookie
         })
 
         if (response.code === 200) {
+          // 后端已设置Cookie，前端只需存储用户信息
           this.setAuth(response.data.accessToken, response.data.user, true)
+          // 存储用户信息到localStorage
+          if (process.client) {
+            localStorage.setItem('user_info', JSON.stringify(response.data.user))
+          }
           return { success: true, user: response.data.user }
         } else {
           throw new Error(response.message || '注册失败')
@@ -308,7 +334,8 @@ export const useAuthStore = defineStore('auth', {
       try {
         const response = await $fetch<{ code: number; message: string }>(`${API_BASE_URL}/auth/forget-password`, {
           method: 'POST',
-          body: { email }
+          body: { email },
+          credentials: 'include'
         })
         
         if (response.code === 200) {
@@ -359,7 +386,8 @@ export const useAuthStore = defineStore('auth', {
             token: data.token,
             newPassword: data.newPassword,
             confirmPassword: data.confirmPassword
-          }
+          },
+          credentials: 'include'
         })
 
         if (response.code === 200) {
@@ -379,7 +407,8 @@ export const useAuthStore = defineStore('auth', {
     async verifyResetToken(token: string): Promise<boolean> {
       try {
         const response = await $fetch<{ code: number; data: boolean }>(`${API_BASE_URL}/auth/verify-reset-token`, {
-          params: { token }
+          params: { token },
+          credentials: 'include'
         })
         return response.code === 200 && response.data === true
       } catch {
@@ -390,9 +419,10 @@ export const useAuthStore = defineStore('auth', {
     // Logout
     async logout() {
       try {
+        // 调用后端登出接口（会清除Cookie和Token黑名单）
         await $fetch(`${API_BASE_URL}/auth/logout`, {
           method: 'POST',
-          headers: this.token ? { Authorization: `Bearer ${this.token}` } : {}
+          credentials: 'include' // 携带Cookie
         })
       } catch {
         // ignore logout API error
