@@ -1,6 +1,111 @@
 import { defineStore } from 'pinia'
 import type { Skill, CartItem } from './skill'
 
+const API_BASE = '/api'
+
+// API functions
+const api = {
+  async getCart() {
+    const response = await fetch(`${API_BASE}/cart/list`, {
+      credentials: 'include'
+    })
+    const result = await response.json()
+    if (result.code === 200) {
+      return {
+        data: {
+          items: (result.data || []).map((item: any) => ({
+            id: item.id?.toString() || `cart_${Date.now()}`,
+            skill: {
+              id: item.skillId?.toString() || '',
+              name: item.skillName || '',
+              icon: item.icon || '🤖',
+              description: item.description || '',
+              price: Number(item.price) || 0,
+              priceType: item.priceType ?? 1,
+              originalPrice: item.originalPrice ? Number(item.originalPrice) : undefined,
+              category: item.category || 'tool',
+              platform: item.platform || '通用',
+              salesCount: item.salesCount || 0,
+              rating: Number(item.rating) || 4.5,
+              reviewCount: 0,
+              safetyLevel: 'high' as const,
+              features: [],
+              author: item.author || '系统',
+              updateTime: new Date().toISOString().split('T')[0]
+            },
+            quantity: item.quantity || 1,
+            selected: true
+          }))
+        }
+      }
+    }
+    throw new Error(result.message || '获取购物车失败')
+  },
+
+  async addToCart(skillId: string, quantity: number = 1) {
+    const response = await fetch(`${API_BASE}/cart/add?skillId=${skillId}&quantity=${quantity}`, {
+      method: 'POST',
+      credentials: 'include'
+    })
+    const result = await response.json()
+    if (result.code === 200) {
+      return { data: true }
+    }
+    throw new Error(result.message || '添加失败')
+  },
+
+  async removeFromCart(cartId: string) {
+    const response = await fetch(`${API_BASE}/cart/remove/${cartId}`, {
+      method: 'DELETE',
+      credentials: 'include'
+    })
+    const result = await response.json()
+    if (result.code === 200) {
+      return { data: true }
+    }
+    throw new Error(result.message || '删除失败')
+  },
+
+  async updateCartItem(cartId: string, quantity: number) {
+    const response = await fetch(`${API_BASE}/cart/update?cartId=${cartId}&quantity=${quantity}`, {
+      method: 'PUT',
+      credentials: 'include'
+    })
+    const result = await response.json()
+    if (result.code === 200) {
+      return { data: true }
+    }
+    throw new Error(result.message || '更新失败')
+  },
+
+  async clearCart() {
+    const response = await fetch(`${API_BASE}/cart/clear`, {
+      method: 'DELETE',
+      credentials: 'include'
+    })
+    const result = await response.json()
+    if (result.code === 200) {
+      return { data: true }
+    }
+    throw new Error(result.message || '清空失败')
+  },
+
+  async getCartCount() {
+    try {
+      const response = await fetch(`${API_BASE}/cart/count`, {
+        credentials: 'include'
+      })
+      const result = await response.json()
+      if (result.code === 200) {
+        return { data: result.data || 0 }
+      }
+    } catch (error) {
+      console.error('获取购物车数量失败:', error)
+    }
+    return { data: 0 }
+  }
+}
+
 export interface CartState {
   items: CartItem[]
   loading: boolean
@@ -16,15 +121,15 @@ export const useCartStore = defineStore('cart', {
 
   getters: {
     totalItems: (state) => state.items.reduce((sum, item) => sum + item.quantity, 0),
-    
+
     selectedItems: (state) => state.items.filter(item => item.selected),
-    
+
     totalPrice: (state) => {
       return state.items
         .filter(item => item.selected)
         .reduce((sum, item) => sum + item.skill.price * item.quantity, 0)
     },
-    
+
     originalTotalPrice: (state) => {
       return state.items
         .filter(item => item.selected)
@@ -33,7 +138,7 @@ export const useCartStore = defineStore('cart', {
           return sum + price * item.quantity
         }, 0)
     },
-    
+
     discount: (state) => {
       const total = state.items
         .filter(item => item.selected)
@@ -56,8 +161,9 @@ export const useCartStore = defineStore('cart', {
   actions: {
     // Add item to cart
     async addToCart(skill: Skill, quantity: number = 1) {
+      // 先更新本地状态
       const existingItem = this.items.find(item => item.skill.id === skill.id)
-      
+
       if (existingItem) {
         existingItem.quantity += quantity
       } else {
@@ -69,11 +175,12 @@ export const useCartStore = defineStore('cart', {
         })
       }
 
-      // Sync with backend
+      // 同步到后端
       try {
         await api.addToCart(skill.id, quantity)
       } catch (error) {
         console.error('Failed to sync cart with backend:', error)
+        // 后端同步失败，但本地已添加
       }
     },
 
@@ -85,7 +192,10 @@ export const useCartStore = defineStore('cart', {
       }
 
       try {
-        await api.removeFromCart(itemId)
+        // 如果是后端ID格式，调用API删除
+        if (!itemId.startsWith('cart_')) {
+          await api.removeFromCart(itemId)
+        }
       } catch (error) {
         console.error('Failed to sync cart with backend:', error)
       }
@@ -100,7 +210,9 @@ export const useCartStore = defineStore('cart', {
         } else {
           item.quantity = quantity
           try {
-            await api.updateCartItem(itemId, quantity)
+            if (!itemId.startsWith('cart_')) {
+              await api.updateCartItem(itemId, quantity)
+            }
           } catch (error) {
             console.error('Failed to sync cart with backend:', error)
           }
@@ -126,12 +238,14 @@ export const useCartStore = defineStore('cart', {
 
     // Clear selected items
     async clearSelected() {
-      const selectedIds = this.items.filter(item => item.selected).map(item => item.id)
+      const selectedItems = this.items.filter(item => item.selected)
       this.items = this.items.filter(item => !item.selected)
-      
+
       try {
-        for (const id of selectedIds) {
-          await api.removeFromCart(id)
+        for (const item of selectedItems) {
+          if (!item.id.startsWith('cart_')) {
+            await api.removeFromCart(item.id)
+          }
         }
       } catch (error) {
         console.error('Failed to sync cart with backend:', error)
@@ -141,7 +255,7 @@ export const useCartStore = defineStore('cart', {
     // Clear entire cart
     async clearCart() {
       this.items = []
-      
+
       try {
         await api.clearCart()
       } catch (error) {
@@ -157,25 +271,36 @@ export const useCartStore = defineStore('cart', {
         this.items = data.items || []
       } catch (error) {
         console.error('Failed to fetch cart:', error)
-        // Load from local storage for demo
-        this.loadFromLocalStorage()
+        // 后端获取失败，清空本地购物车
+        this.items = []
       } finally {
         this.loading = false
       }
     },
 
-    // Save to local storage
+    // Fetch cart count
+    async fetchCartCount(): Promise<number> {
+      try {
+        const { data } = await api.getCartCount()
+        return data
+      } catch (error) {
+        console.error('Failed to fetch cart count:', error)
+        return 0
+      }
+    },
+
+    // Save to local storage (backup)
     saveToLocalStorage() {
       if (process.client) {
         localStorage.setItem('coco_claw_cart', JSON.stringify(this.items))
       }
     },
 
-    // Load from local storage
+    // Load from local storage (fallback)
     loadFromLocalStorage() {
       if (process.client) {
         const saved = localStorage.getItem('coco_claw_cart')
-        if (saved) {
+        if (saved && this.items.length === 0) {
           try {
             this.items = JSON.parse(saved)
           } catch (e) {
