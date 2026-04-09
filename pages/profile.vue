@@ -1,341 +1,314 @@
 <template>
-  <div class="profile-page min-h-screen pb-20">
+  <div class="profile-page">
     <!-- Header -->
-    <div class="relative px-4 pt-8 pb-6 overflow-hidden">
-      <!-- Background Glow -->
-      <div class="absolute inset-0 bg-cyber-gradient opacity-10 blur-3xl"></div>
-      
-      <div class="relative">
-        <!-- User Info Section -->
-        <div class="flex items-center gap-4 mb-6">
-          <!-- Avatar -->
-          <div 
-            class="w-20 h-20 rounded-2xl bg-cyber-gradient flex items-center justify-center text-3xl shadow-cyber-lg"
-            @click="goToEditProfile"
-          >
-            {{ userInfo?.avatar ? '🧑‍💻' : '🐾' }}
-          </div>
-          
-          <div class="flex-1">
-            <div v-if="isLoggedIn">
-              <h2 class="text-xl font-bold text-cyber-text">{{ userInfo?.nickname || userInfo?.username }}</h2>
-              <p class="text-sm text-cyber-muted mt-1">{{ userInfo?.phone || userInfo?.email }}</p>
-              <p class="text-xs text-cyber-muted mt-0.5">ID: {{ userInfo?.id }}</p>
-            </div>
-            <div v-else>
-              <h2 class="text-xl font-bold text-cyber-text">游客用户</h2>
-              <p class="text-sm text-cyber-muted mt-1">登录后享受更多服务</p>
-            </div>
-          </div>
-
-          <!-- Settings Button -->
-          <button 
-            v-if="isLoggedIn"
-            @click="goToEditProfile"
-            class="p-2 rounded-lg hover:bg-cyber-card transition-colors"
-          >
-            <span class="text-xl">⚙️</span>
-          </button>
-        </div>
-
-        <!-- Quick Stats -->
-        <div v-if="isLoggedIn" class="grid grid-cols-4 gap-3">
-          <div class="text-center">
-            <div class="text-lg font-bold text-cyber-primary">{{ orderCount.all }}</div>
-            <div class="text-xs text-cyber-muted">全部订单</div>
-          </div>
-          <div class="text-center">
-            <div class="text-lg font-bold text-cyber-warning">{{ orderCount.pending }}</div>
-            <div class="text-xs text-cyber-muted">待支付</div>
-          </div>
-          <div class="text-center">
-            <div class="text-lg font-bold text-cyber-success">{{ orderCount.completed }}</div>
-            <div class="text-xs text-cyber-muted">已完成</div>
-          </div>
-          <div class="text-center">
-            <div class="text-lg font-bold text-cyber-secondary">{{ validCouponCount }}</div>
-            <div class="text-xs text-cyber-muted">优惠券</div>
-          </div>
-        </div>
+    <div class="sticky top-0 z-50 bg-cyber-darker/95 backdrop-blur-md border-b border-cyber-border">
+      <div class="px-4 py-3">
+        <h1 class="text-lg font-bold text-cyber-text">我的技能</h1>
       </div>
     </div>
 
-    <!-- Not Logged In Section -->
-    <div v-if="!isLoggedIn" class="px-4 mb-6">
-      <div class="cyber-card p-6 rounded-xl text-center">
-        <p class="text-cyber-muted mb-4">登录后可以管理订单、收藏和享受更多服务</p>
-        <div class="flex gap-3">
-          <NuxtLink to="/login" class="flex-1">
-            <button class="cyber-btn w-full">登录</button>
-          </NuxtLink>
-          <NuxtLink to="/register" class="flex-1">
-            <button class="cyber-btn-outline w-full">注册</button>
-          </NuxtLink>
-        </div>
-      </div>
+    <!-- Loading -->
+    <div v-if="loading" class="flex flex-col items-center justify-center py-20">
+      <span class="text-5xl animate-spin">⟳</span>
+      <p class="text-cyber-muted mt-4">加载中...</p>
     </div>
 
-    <!-- Order Section -->
-    <div class="px-4 mb-6">
-      <div class="cyber-card p-4 rounded-xl">
-        <div class="flex items-center justify-between mb-4">
-          <h3 class="font-bold text-cyber-text">我的订单</h3>
-          <NuxtLink to="/orders" class="text-sm text-cyber-muted hover:text-cyber-primary transition-colors">
-            查看全部 →
-          </NuxtLink>
-        </div>
-        
-        <div class="grid grid-cols-4 gap-4">
-          <NuxtLink 
-            v-for="item in orderTabs" 
-            :key="item.key"
-            :to="`/orders?status=${item.key}`"
-            class="flex flex-col items-center p-2 hover:bg-cyber-darker rounded-lg transition-colors"
-          >
-            <span class="text-2xl mb-1">{{ item.icon }}</span>
-            <span class="text-xs text-cyber-muted">{{ item.label }}</span>
-            <span 
-              v-if="getOrderCount(item.key) > 0"
-              class="mt-1 px-2 py-0.5 rounded-full bg-cyber-danger text-xs text-white"
+    <!-- Empty State -->
+    <div v-else-if="userSkills.length === 0" class="flex flex-col items-center justify-center py-20 px-4">
+      <span class="text-7xl mb-6">🎯</span>
+      <h2 class="text-xl font-bold text-cyber-text mb-2">暂无技能</h2>
+      <p class="text-cyber-muted mb-6 text-center">您还没有购买任何技能，快去挑选吧！</p>
+      <NuxtLink to="/">
+        <button class="cyber-btn">浏览技能商店</button>
+      </NuxtLink>
+    </div>
+
+    <!-- Skills List -->
+    <div v-else class="px-4 py-4">
+      <div class="space-y-4">
+        <div 
+          v-for="skill in userSkills" 
+          :key="skill.id"
+          class="cyber-card p-4 rounded-xl"
+        >
+          <div class="flex items-start gap-4">
+            <!-- Skill Icon -->
+            <div 
+              class="w-14 h-14 rounded-xl flex items-center justify-center text-2xl flex-shrink-0"
+              :style="{ background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' }"
             >
-              {{ getOrderCount(item.key) }}
-            </span>
-          </NuxtLink>
+              {{ skill.skillIcon || '🎯' }}
+            </div>
+
+            <!-- Skill Info -->
+            <div class="flex-1 min-w-0">
+              <div class="flex items-center gap-2 mb-1">
+                <h3 class="font-bold text-cyber-text truncate">{{ skill.skillName }}</h3>
+                <span 
+                  v-if="skill.isExpired"
+                  class="px-2 py-0.5 text-xs rounded bg-cyber-danger/20 text-cyber-danger"
+                >
+                  已过期
+                </span>
+                <span 
+                  v-else-if="skill.remainUsage === 0"
+                  class="px-2 py-0.5 text-xs rounded bg-cyber-warning/20 text-cyber-warning"
+                >
+                  次数用完
+                </span>
+                <span 
+                  v-else
+                  class="px-2 py-0.5 text-xs rounded bg-cyber-success/20 text-cyber-success"
+                >
+                  正常使用
+                </span>
+              </div>
+
+              <!-- Usage Info -->
+              <div class="flex items-center gap-4 text-sm text-cyber-muted mb-2">
+                <span v-if="skill.unlimited">
+                  使用次数: 无限
+                </span>
+                <span v-else>
+                  剩余次数: {{ skill.remainUsage }} / {{ skill.maxUsageCount }}
+                </span>
+                <span v-if="skill.expireTime">
+                  有效期至: {{ formatDate(skill.expireTime) }}
+                </span>
+              </div>
+
+              <!-- Progress Bar -->
+              <div v-if="!skill.unlimited && !skill.isExpired" class="mb-3">
+                <div class="h-2 bg-cyber-darker rounded-full overflow-hidden">
+                  <div 
+                    class="h-full bg-cyber-gradient transition-all"
+                    :style="{ width: `${(skill.remainUsage / skill.maxUsageCount) * 100}%` }"
+                  ></div>
+                </div>
+              </div>
+
+              <!-- Action Buttons -->
+              <div class="flex items-center gap-2">
+                <button 
+                  @click="viewSkillDetail(skill)"
+                  :disabled="skill.isExpired || skill.remainUsage === 0"
+                  :class="[
+                    'px-4 py-2 rounded-lg text-sm font-medium transition-all',
+                    skill.isExpired || skill.remainUsage === 0
+                      ? 'bg-cyber-card text-cyber-muted cursor-not-allowed'
+                      : 'bg-cyber-gradient text-white hover:shadow-cyber'
+                  ]"
+                >
+                  {{ skill.isExpired || skill.remainUsage === 0 ? '暂不可用' : '使用技能' }}
+                </button>
+                <button 
+                  @click="copyApiKey(skill)"
+                  class="px-4 py-2 rounded-lg text-sm font-medium bg-cyber-card text-cyber-text hover:bg-cyber-darker transition-colors"
+                >
+                  复制API Key
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </div>
 
-    <!-- Service Section -->
-    <div class="px-4 mb-6">
-      <div class="cyber-card rounded-xl overflow-hidden">
-        <!-- Address Management -->
-        <NuxtLink 
-          to="/address" 
-          class="flex items-center justify-between p-4 hover:bg-cyber-darker transition-colors"
+    <!-- Skill Detail Modal -->
+    <Teleport to="body">
+      <Transition name="fade">
+        <div 
+          v-if="selectedSkill"
+          class="fixed inset-0 bg-black/70 backdrop-blur-sm z-[100] flex items-center justify-center p-4"
+          @click.self="selectedSkill = null"
         >
-          <div class="flex items-center gap-3">
-            <span class="text-xl">📍</span>
-            <span class="text-cyber-text">收货地址</span>
+          <div class="cyber-card p-6 rounded-2xl max-w-lg w-full max-h-[80vh] overflow-y-auto">
+            <div class="flex items-center justify-between mb-4">
+              <h2 class="text-xl font-bold text-cyber-text">{{ selectedSkill.skillName }}</h2>
+              <button 
+                @click="selectedSkill = null"
+                class="p-2 rounded-lg hover:bg-cyber-darker transition-colors"
+              >
+                ✕
+              </button>
+            </div>
+
+            <!-- Description -->
+            <div class="mb-4">
+              <h3 class="text-sm font-medium text-cyber-muted mb-2">技能描述</h3>
+              <p class="text-cyber-text text-sm">{{ selectedSkill.skillDescription || '暂无描述' }}</p>
+            </div>
+
+            <!-- Usage Info -->
+            <div class="mb-4 p-4 bg-cyber-darker rounded-lg">
+              <div class="grid grid-cols-2 gap-4 text-sm">
+                <div>
+                  <p class="text-cyber-muted">使用次数</p>
+                  <p class="text-lg font-bold text-cyber-text">{{ selectedSkill.usageCount }} 次</p>
+                </div>
+                <div>
+                  <p class="text-cyber-muted">剩余次数</p>
+                  <p class="text-lg font-bold text-cyber-success">
+                    {{ selectedSkill.unlimited ? '无限' : selectedSkill.remainUsage + ' 次' }}
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <!-- API Info -->
+            <div class="mb-4">
+              <h3 class="text-sm font-medium text-cyber-muted mb-2">API密钥</h3>
+              <div class="flex items-center gap-2">
+                <input 
+                  type="text" 
+                  :value="selectedSkill.apiKey || '未配置'"
+                  readonly
+                  class="flex-1 px-3 py-2 bg-cyber-darker rounded-lg text-sm text-cyber-text border border-cyber-border"
+                />
+                <button 
+                  @click="copyText(selectedSkill.apiKey)"
+                  class="px-4 py-2 bg-cyber-primary text-white rounded-lg text-sm hover:bg-cyber-primary/80 transition-colors"
+                >
+                  复制
+                </button>
+              </div>
+            </div>
+
+            <!-- API Endpoint -->
+            <div v-if="selectedSkill.apiEndpoint" class="mb-4">
+              <h3 class="text-sm font-medium text-cyber-muted mb-2">API端点</h3>
+              <div class="flex items-center gap-2">
+                <input 
+                  type="text" 
+                  :value="selectedSkill.apiEndpoint"
+                  readonly
+                  class="flex-1 px-3 py-2 bg-cyber-darker rounded-lg text-sm text-cyber-text border border-cyber-border"
+                />
+                <button 
+                  @click="copyText(selectedSkill.apiEndpoint)"
+                  class="px-4 py-2 bg-cyber-primary text-white rounded-lg text-sm hover:bg-cyber-primary/80 transition-colors"
+                >
+                  复制
+                </button>
+              </div>
+            </div>
+
+            <!-- Documentation -->
+            <div v-if="selectedSkill.apiDocumentation" class="mb-4">
+              <h3 class="text-sm font-medium text-cyber-muted mb-2">使用文档</h3>
+              <a 
+                :href="selectedSkill.apiDocumentation"
+                target="_blank"
+                class="text-cyber-primary hover:underline"
+              >
+                点击查看API文档 →
+              </a>
+            </div>
+
+            <!-- Use Button -->
+            <button 
+              @click="useSkill(selectedSkill)"
+              :disabled="selectedSkill.isExpired || selectedSkill.remainUsage === 0"
+              :class="[
+                'w-full py-3 rounded-xl font-bold transition-all',
+                selectedSkill.isExpired || selectedSkill.remainUsage === 0
+                  ? 'bg-cyber-card text-cyber-muted cursor-not-allowed'
+                  : 'bg-cyber-gradient text-white hover:shadow-cyber'
+              ]"
+            >
+              {{ selectedSkill.isExpired ? '技能已过期' : selectedSkill.remainUsage === 0 ? '使用次数已用完' : '使用此技能' }}
+            </button>
           </div>
-          <span class="text-cyber-muted">→</span>
-        </NuxtLink>
-
-        <div class="cyber-divider my-0"></div>
-
-        <!-- Coupons -->
-        <NuxtLink 
-          to="/coupons" 
-          class="flex items-center justify-between p-4 hover:bg-cyber-darker transition-colors"
-        >
-          <div class="flex items-center gap-3">
-            <span class="text-xl">🎫</span>
-            <span class="text-cyber-text">我的优惠券</span>
-          </div>
-          <div class="flex items-center gap-2">
-            <span v-if="validCouponCount > 0" class="px-2 py-0.5 rounded-full bg-cyber-primary/20 text-cyber-primary text-xs">
-              {{ validCouponCount }} 张可用
-            </span>
-            <span class="text-cyber-muted">→</span>
-          </div>
-        </NuxtLink>
-
-        <div class="cyber-divider my-0"></div>
-
-        <!-- Favorite -->
-        <NuxtLink 
-          to="/favorites" 
-          class="flex items-center justify-between p-4 hover:bg-cyber-darker transition-colors"
-        >
-          <div class="flex items-center gap-3">
-            <span class="text-xl">⭐</span>
-            <span class="text-cyber-text">我的收藏</span>
-          </div>
-          <span class="text-cyber-muted">→</span>
-        </NuxtLink>
-
-        <div class="cyber-divider my-0"></div>
-
-        <!-- Security Settings -->
-        <NuxtLink 
-          to="/security" 
-          class="flex items-center justify-between p-4 hover:bg-cyber-darker transition-colors"
-        >
-          <div class="flex items-center gap-3">
-            <span class="text-xl">🔐</span>
-            <span class="text-cyber-text">账户安全</span>
-          </div>
-          <span class="text-cyber-muted">→</span>
-        </NuxtLink>
-      </div>
-    </div>
-
-    <!-- More Services -->
-    <div class="px-4 mb-6">
-      <div class="cyber-card rounded-xl overflow-hidden">
-        <!-- Help Center -->
-        <NuxtLink 
-          to="/help" 
-          class="flex items-center justify-between p-4 hover:bg-cyber-darker transition-colors"
-        >
-          <div class="flex items-center gap-3">
-            <span class="text-xl">❓</span>
-            <span class="text-cyber-text">帮助中心</span>
-          </div>
-          <span class="text-cyber-muted">→</span>
-        </NuxtLink>
-
-        <div class="cyber-divider my-0"></div>
-
-        <!-- Feedback -->
-        <NuxtLink 
-          to="/feedback" 
-          class="flex items-center justify-between p-4 hover:bg-cyber-darker transition-colors"
-        >
-          <div class="flex items-center gap-3">
-            <span class="text-xl">💬</span>
-            <span class="text-cyber-text">意见反馈</span>
-          </div>
-          <span class="text-cyber-muted">→</span>
-        </NuxtLink>
-
-        <div class="cyber-divider my-0"></div>
-
-        <!-- About -->
-        <NuxtLink 
-          to="/about" 
-          class="flex items-center justify-between p-4 hover:bg-cyber-darker transition-colors"
-        >
-          <div class="flex items-center gap-3">
-            <span class="text-xl">ℹ️</span>
-            <span class="text-cyber-text">关于我们</span>
-          </div>
-          <span class="text-cyber-muted">→</span>
-        </NuxtLink>
-      </div>
-    </div>
-
-    <!-- Logout Button -->
-    <div v-if="isLoggedIn" class="px-4 mb-6">
-      <button 
-        @click="handleLogout"
-        class="w-full py-4 rounded-xl bg-cyber-danger/20 border border-cyber-danger/50 text-cyber-danger font-medium hover:bg-cyber-danger/30 transition-colors"
-      >
-        退出登录
-      </button>
-    </div>
-
-    <!-- Version Info -->
-    <div class="px-4 text-center text-xs text-cyber-muted">
-      <p>COCO CLAW v1.0.0</p>
-    </div>
-
-    <!-- Bottom Navigation -->
-    <nav class="fixed bottom-0 left-0 right-0 bg-cyber-darker/95 backdrop-blur-md border-t border-cyber-border safe-area-bottom z-50">
-      <div class="flex justify-around py-2">
-        <NuxtLink to="/" class="flex flex-col items-center p-2 text-cyber-muted hover:text-cyber-primary transition-colors">
-          <span class="text-xl">🏠</span>
-          <span class="text-xs mt-1">首页</span>
-        </NuxtLink>
-        <NuxtLink to="/skills" class="flex flex-col items-center p-2 text-cyber-muted hover:text-cyber-primary transition-colors">
-          <span class="text-xl">🔍</span>
-          <span class="text-xs mt-1">发现</span>
-        </NuxtLink>
-        <NuxtLink to="/cart" class="flex flex-col items-center p-2 text-cyber-muted hover:text-cyber-primary transition-colors">
-          <span class="text-xl">🛒</span>
-          <span class="text-xs mt-1">购物车</span>
-        </NuxtLink>
-        <NuxtLink to="/order" class="flex flex-col items-center p-2 text-cyber-muted hover:text-cyber-primary transition-colors">
-          <span class="text-xl">📋</span>
-          <span class="text-xs mt-1">订单</span>
-        </NuxtLink>
-        <NuxtLink to="/profile" class="flex flex-col items-center p-2 text-cyber-primary">
-          <span class="text-xl">👤</span>
-          <span class="text-xs mt-1">我的</span>
-        </NuxtLink>
-      </div>
-    </nav>
+        </div>
+      </Transition>
+    </Teleport>
   </div>
 </template>
 
 <script setup lang="ts">
-import { useAuthStore } from '~/stores/auth'
-import { useUserStore } from '~/stores/user'
-import { useOrderStore } from '~/stores/order'
+import axios from 'axios'
 
-const authStore = useAuthStore()
-const userStore = useUserStore()
-const orderStore = useOrderStore()
+const apiBase = '/api'
 
-// Check if logged in
-const isLoggedIn = computed(() => authStore.isLoggedIn)
+// State
+const loading = ref(true)
+const userSkills = ref<any[]>([])
+const selectedSkill = ref<any>(null)
 
-// Get user info
-const userInfo = computed(() => userStore.userInfo)
+// Fetch user skills
+const fetchUserSkills = async () => {
+  loading.value = true
+  try {
+    const response = await axios.get(`${apiBase}/user/skill/list`)
+    if (response.data.code === 200) {
+      userSkills.value = response.data.data
+    }
+  } catch (error) {
+    console.error('获取用户技能失败:', error)
+  } finally {
+    loading.value = false
+  }
+}
 
-// Get order counts
-const orderCount = computed(() => orderStore.orderCount)
-const validCouponCount = computed(() => userStore.validCoupons.length)
+// View skill detail
+const viewSkillDetail = (skill: any) => {
+  selectedSkill.value = skill
+}
 
-// Order tabs
-const orderTabs = [
-  { key: 'pending', label: '待支付', icon: '💰' },
-  { key: 'paid', label: '已支付', icon: '📦' },
-  { key: 'completed', label: '已完成', icon: '✅' },
-  { key: 'all', label: '全部', icon: '📋' }
-]
+// Use skill
+const useSkill = async (skill: any) => {
+  try {
+    const response = await axios.post(`${apiBase}/user/skill/use/${skill.skillId}`)
+    if (response.data.code === 200) {
+      // Update local state
+      skill.usageCount = response.data.data.usageCount
+      skill.remainUsage = response.data.data.remainUsage
+      alert(`技能使用成功！剩余 ${skill.remainUsage === -1 ? '无限' : skill.remainUsage} 次`)
+    }
+  } catch (error: any) {
+    alert(error.response?.data?.message || '使用技能失败')
+  }
+}
 
-// Get order count for tab
-const getOrderCount = (status: string) => {
-  if (status === 'all') return orderCount.value.all
-  if (status === 'pending') return orderCount.value.pending
-  if (status === 'paid') return orderCount.value.paid
-  if (status === 'completed') return orderCount.value.completed
-  return 0
+// Copy API Key
+const copyApiKey = (skill: any) => {
+  copyText(skill.apiKey)
+}
+
+// Copy text to clipboard
+const copyText = (text: string) => {
+  if (!text) return
+  navigator.clipboard.writeText(text).then(() => {
+    alert('已复制到剪贴板')
+  }).catch(() => {
+    alert('复制失败')
+  })
+}
+
+// Format date
+const formatDate = (date: string) => {
+  if (!date) return ''
+  return new Date(date).toLocaleDateString('zh-CN')
 }
 
 // Initialize
-onMounted(async () => {
-  authStore.initAuth()
-  userStore.initUser()
-  orderStore.loadOrders()
-  
-  if (isLoggedIn.value) {
-    await Promise.all([
-      userStore.fetchUserInfo(),
-      userStore.fetchAddresses(),
-      userStore.fetchCoupons(),
-      orderStore.fetchOrders()
-    ])
-  }
+onMounted(() => {
+  fetchUserSkills()
 })
 
-// Navigate to edit profile
-const goToEditProfile = () => {
-  if (isLoggedIn.value) {
-    navigateTo('/profile/edit')
-  } else {
-    navigateTo('/login')
-  }
-}
-
-// Handle logout
-const handleLogout = async () => {
-  if (confirm('确定要退出登录吗？')) {
-    await authStore.logout()
-    userStore.clearUser()
-    orderStore.clearOrders()
-    navigateTo('/')
-  }
-}
-
 useHead({
-  title: '个人中心 - COCO CLAW'
+  title: '我的技能 - COCO CLAW'
 })
 </script>
 
 <style scoped>
-.cyber-divider {
-  height: 1px;
-  background: linear-gradient(90deg, transparent, #2a2a5a, transparent);
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.3s ease;
+}
+
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
 }
 </style>
