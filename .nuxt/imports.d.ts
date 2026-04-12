@@ -32,6 +32,7 @@ export { showDialog, showConfirmDialog, showImagePreview, showNotify, showToast,
 export { definePageMeta } from '../node_modules/nuxt/dist/pages/runtime/composables';
 export { defineLazyHydrationComponent } from '#app/composables/lazy-hydration';
 export { useApi, api } from '../composables/useApi';
+export { useConfig } from '../composables/useConfig';
 export { useAuthStore, AuthState } from '../stores/auth';
 export { useCartStore, CartState } from '../stores/cart';
 export { useOrderStore, OrderItem, Order, OrderState } from '../stores/order';

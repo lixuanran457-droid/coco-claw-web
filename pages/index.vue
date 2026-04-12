@@ -163,25 +163,34 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
+import { useConfig } from '~/composables/useConfig'
 
 const currentPath = ref('/')
+const config = useConfig()
 
-// Banner 数据
+// 系统参数
+const systemParams = ref({
+  APP_NAME: 'COCO CLAW',
+  APP_SLOGAN: '真正便宜的 TOKEN'
+})
+
+// Banner 数据 - 从API或默认值
 const banners = ref<Array<{
   id: number
+  title: string
   imageUrl: string
 }>>([])
 
-// 功能入口
-const features = [
-  { icon: '💎', name: '充值中心' },
-  { icon: '📦', name: '套餐购买' },
-  { icon: '📱', name: '使用教程' },
-  { icon: '💁', name: '在线客服' }
-]
+// 功能入口 - 从API或默认值
+const features = ref([
+  { name: '充值中心', icon: '💎' },
+  { name: '套餐购买', icon: '📦' },
+  { name: '使用教程', icon: '📱' },
+  { name: '在线客服', icon: '💁' }
+])
 
-// 精选推荐
+// 精选推荐 - 从API或默认值
 const recommendedPackages = ref([
   { id: 1, name: '月卡', icon: '🌟', subtitle: '1000次/天', price: 49, originalPrice: 79 },
   { id: 2, name: '季卡', icon: '🚀', subtitle: '1500次/天', price: 129, originalPrice: 199 },
@@ -189,18 +198,16 @@ const recommendedPackages = ref([
   { id: 4, name: '体验卡', icon: '🌱', subtitle: '100次/天', price: 9.9, originalPrice: 19.9 }
 ])
 
-// 分类标签
-const tabs = [
+// 分类标签 - 从API或默认值
+const tabs = ref([
   { id: 'all', name: '全部' },
   { id: 'api', name: 'API' },
   { id: 'chat', name: '对话' },
   { id: 'ai', name: 'AI对话' },
   { id: 'image', name: '图像' }
-]
+])
 
-const activeTab = ref('all')
-
-// 全部商品
+// 商品列表 - 从API或默认值
 const allPackages = ref([
   { id: 1, name: '体验版', icon: '🌱', description: '适合新手试用', price: 9.9, originalPrice: 19.9, tag: '新人', category: 'all' },
   { id: 2, name: '月卡', icon: '🌟', description: '性价比之选', price: 49, originalPrice: 79, tag: '推荐', category: 'all' },
@@ -209,6 +216,8 @@ const allPackages = ref([
   { id: 5, name: 'API 基础版', icon: '🔌', description: '基础 API 调用', price: 29, originalPrice: 49, tag: '', category: 'api' },
   { id: 6, name: 'API 专业版', icon: '⚡', description: '高级 API 调用', price: 99, originalPrice: 149, tag: '', category: 'api' }
 ])
+
+const activeTab = ref('all')
 
 const filteredPackages = computed(() => {
   if (activeTab.value === 'all') return allPackages.value
@@ -223,7 +232,51 @@ const navItems = [
   { name: '我的', icon: '👤', path: '/profile' }
 ]
 
-useHead({ title: 'COCO CLAW - 真正便宜的 TOKEN' })
+// 页面加载时获取配置
+onMounted(async () => {
+  try {
+    // 获取系统参数
+    const params = await config.fetchSystemParams()
+    if (params) {
+      systemParams.value = { ...systemParams.value, ...params }
+    }
+
+    // 获取功能入口
+    const featureList = await config.fetchFeatures()
+    if (featureList && featureList.length > 0) {
+      features.value = featureList.map((f: any) => ({
+        name: f.name,
+        icon: f.icon,
+        linkUrl: f.linkUrl
+      }))
+    }
+
+    // 获取Banner
+    const bannerList = await config.fetchBanners()
+    if (bannerList && bannerList.length > 0) {
+      banners.value = bannerList
+    }
+
+    // 获取精选推荐
+    const homeConfig = await config.fetchHomeConfig()
+    if (homeConfig?.recommendations && homeConfig.recommendations.length > 0) {
+      recommendedPackages.value = homeConfig.recommendations.map((r: any) => ({
+        id: r.id,
+        name: r.title,
+        icon: r.icon || '🌟',
+        subtitle: r.subtitle || '',
+        price: 0,
+        originalPrice: 0
+      }))
+    }
+  } catch (error) {
+    console.error('加载配置失败，使用默认数据:', error)
+  }
+})
+
+useHead({ 
+  title: `${systemParams.value.APP_NAME} - ${systemParams.value.APP_SLOGAN}` 
+})
 </script>
 
 <style scoped>
