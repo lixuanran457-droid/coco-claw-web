@@ -5,7 +5,6 @@
 </template>
 
 <script setup>
-// Global app setup
 useHead({
   htmlAttrs: {
     lang: 'zh-CN'
@@ -43,5 +42,16 @@ useHead({
 .page-leave-to {
   opacity: 0;
   transform: translateY(-10px);
+}
+
+/* Global styles */
+* {
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 </style>
