@@ -16,9 +16,9 @@ export default defineNuxtConfig({
     head: {
       title: 'COCO CLAW - SKILL 交易市场',
       meta: [
-        { name: 'viewport', content: 'width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no' },
         { charset: 'utf-8' },
-        { name: 'description', content: 'COCO CLAW - 专业的 SKILL 交易市场' }
+        { name: 'description', content: 'COCO CLAW - 真正便宜的 TOKEN' },
+        { name: 'viewport', content: 'width=device-width, initial-scale=1' }
       ],
       link: [
         { rel: 'icon', type: 'image/svg+xml', href: '/favicon.ico' }
