@@ -153,10 +153,14 @@
                 <span>最后使用: {{ key.lastUsed || '暂无' }}</span>
               </div>
             </div>
-            <div v-if="apiKeys.length === 0" class="empty-state">
-              <p>暂无 API Key</p>
-              <button class="btn-primary" @click="showCreateApiKeyModal = true">创建第一个 Key</button>
-            </div>
+            <EmptyState 
+              v-if="apiKeys.length === 0"
+              icon="🔑"
+              title="暂无 API Key"
+              description="创建你的第一个 API Key，开始使用 AI 服务"
+              action-text="创建 API Key"
+              @action="showCreateApiKeyModal = true"
+            />
           </div>
 
           <!-- API 调用说明 -->
@@ -296,9 +300,14 @@
                 <span>{{ order.createdAt }}</span>
               </div>
             </div>
-            <div v-if="orders.length === 0" class="empty-state">
-              <p>暂无订单记录</p>
-            </div>
+            <EmptyState 
+              v-if="orders.length === 0"
+              icon="📦"
+              title="暂无订单"
+              description="你还没有购买任何套餐，快去商城看看吧"
+              action-text="去商城"
+              @action="navigateTo('/shop')"
+            />
           </div>
         </div>
 
@@ -424,8 +433,13 @@
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { showToast, showSuccessToast, showFailToast } from 'vant'
+import EmptyState from '~/components/EmptyState.vue'
+import SkeletonScreen from '~/components/SkeletonScreen.vue'
+import { useConfirm } from '~/composables/useConfirm'
+import { useFormValidation } from '~/composables/useFormValidation'
 
 const router = useRouter()
+const { confirmDanger, success, error } = useConfirm()
 
 // 登录状态
 const isLoggedIn = ref(false)
@@ -603,7 +617,38 @@ const createApiKey = async () => {
   apiKeys.value.unshift(newKey)
   showCreateApiKeyModal.value = false
   newApiKeyName.value = ''
-  showSuccessToast('API Key 创建成功')
+  success('API Key 创建成功')
+}
+
+// 删除 API Key
+const handleDeleteApiKey = async (key) => {
+  const confirmed = await confirmDanger({
+    title: '确认删除 API Key',
+    message: `确定要删除 "${key.name}" 吗？此操作不可恢复，删除后该 Key 将无法使用。`,
+    confirmText: '删除'
+  })
+
+  if (confirmed) {
+    // 模拟删除
+    apiKeys.value = apiKeys.value.filter(k => k.id !== key.id)
+    success('API Key 已删除')
+  }
+}
+
+// 禁用/启用 API Key
+const toggleApiKeyStatus = async (key) => {
+  const action = key.status === 'active' ? '禁用' : '启用'
+  const confirmed = await confirm({
+    title: `确认${action} API Key`,
+    message: `确定要${action} "${key.name}" 吗？`,
+    confirmText: action,
+    confirmType: action === '禁用' ? 'warning' : 'primary'
+  })
+
+  if (confirmed) {
+    key.status = key.status === 'active' ? 'disabled' : 'active'
+    success(`API Key 已${action}`)
+  }
 }
 
 // 切换订阅

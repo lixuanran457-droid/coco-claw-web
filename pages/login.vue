@@ -69,17 +69,21 @@
         <!-- Email Captcha Login Form -->
         <div v-if="loginType === 'captcha'" class="space-y-4">
           <div>
-            <label class="block text-sm text-cyber-muted mb-2">邮箱</label>
+            <label class="block text-sm text-cyber-muted mb-2">邮箱 <span class="text-cyber-danger">*</span></label>
             <input
               v-model="captchaForm.email"
               type="email"
               placeholder="请输入邮箱地址"
-              class="cyber-input"
+              :class="['cyber-input', formErrors.email && formTouched.email ? 'input-error' : '']"
+              @blur="touch('email'); validateField('email', captchaForm.email)"
             />
+            <p v-if="formErrors.email && formTouched.email" class="text-cyber-danger text-xs mt-1">
+              {{ formErrors.email }}
+            </p>
           </div>
 
           <div>
-            <label class="block text-sm text-cyber-muted mb-2">验证码</label>
+            <label class="block text-sm text-cyber-muted mb-2">验证码 <span class="text-cyber-danger">*</span></label>
             <div class="flex gap-2">
               <input
                 v-model="captchaForm.code"
@@ -90,8 +94,8 @@
               />
               <button 
                 @click="sendCaptcha"
-                :disabled="countdown > 0"
-                class="px-4 py-3 rounded-lg bg-cyber-card border border-cyber-border text-cyber-primary text-sm font-medium whitespace-nowrap hover:border-cyber-primary transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                :disabled="!canSendCaptcha"
+                :class="['px-4 py-3 rounded-lg text-sm font-medium whitespace-nowrap transition-colors', canSendCaptcha ? 'bg-cyber-card border border-cyber-border text-cyber-primary hover:border-cyber-primary' : 'bg-cyber-darker text-cyber-muted cursor-not-allowed']"
               >
                 {{ countdown > 0 ? `${countdown}s` : '获取验证码' }}
               </button>
@@ -115,7 +119,7 @@
           <button 
             @click="handleCaptchaLogin"
             :disabled="authStore.loading || !captchaForm.email || !captchaForm.code"
-            class="cyber-btn w-full mt-6 disabled:opacity-50 disabled:cursor-not-allowed"
+            class="cyber-btn w-full mt-6 disabled:opacity-50 disabled:cursor-not-allowed ripple"
           >
             <span v-if="authStore.loading" class="animate-spin mr-2">⟳</span>
             {{ authStore.loading ? '登录中...' : '登录' }}
@@ -125,23 +129,28 @@
         <!-- Password Login Form -->
         <div v-else class="space-y-4">
           <div>
-            <label class="block text-sm text-cyber-muted mb-2">邮箱</label>
+            <label class="block text-sm text-cyber-muted mb-2">邮箱 <span class="text-cyber-danger">*</span></label>
             <input
               v-model="passwordForm.email"
               type="email"
               placeholder="请输入邮箱地址"
-              class="cyber-input"
+              :class="['cyber-input', formErrors.email && formTouched.email ? 'input-error' : '']"
+              @blur="touch('email'); validateField('email', passwordForm.email)"
             />
+            <p v-if="formErrors.email && formTouched.email" class="text-cyber-danger text-xs mt-1">
+              {{ formErrors.email }}
+            </p>
           </div>
 
           <div>
-            <label class="block text-sm text-cyber-muted mb-2">密码</label>
+            <label class="block text-sm text-cyber-muted mb-2">密码 <span class="text-cyber-danger">*</span></label>
             <div class="relative">
               <input
                 v-model="passwordForm.password"
                 :type="showPassword ? 'text' : 'password'"
                 placeholder="请输入密码"
-                class="cyber-input pr-10"
+                :class="['cyber-input pr-10', formErrors.password && formTouched.password ? 'input-error' : '']"
+                @blur="touch('password'); validateField('password', passwordForm.password)"
               />
               <button 
                 @click="showPassword = !showPassword"
@@ -150,6 +159,9 @@
                 {{ showPassword ? '👁️' : '👁️‍🗨️' }}
               </button>
             </div>
+            <p v-if="formErrors.password && formTouched.password" class="text-cyber-danger text-xs mt-1">
+              {{ formErrors.password }}
+            </p>
           </div>
 
           <div class="flex items-center justify-between text-sm">
@@ -169,7 +181,7 @@
           <button 
             @click="handlePasswordLogin"
             :disabled="authStore.loading || !passwordForm.email || !passwordForm.password"
-            class="cyber-btn w-full mt-6 disabled:opacity-50 disabled:cursor-not-allowed"
+            class="cyber-btn w-full mt-6 disabled:opacity-50 disabled:cursor-not-allowed ripple"
           >
             <span v-if="authStore.loading" class="animate-spin mr-2">⟳</span>
             {{ authStore.loading ? '登录中...' : '登录' }}
@@ -203,16 +215,33 @@
 
 <script setup lang="ts">
 import { useAuthStore } from '~/stores/auth'
+import { useFormValidation, commonRules } from '~/composables/useFormValidation'
+import { useConfirm } from '~/composables/useConfirm'
+import { showSuccessToast, showFailToast } from 'vant'
 
 definePageMeta({
   layout: false
 })
 
 const authStore = useAuthStore()
+const { success, error: showError } = useConfirm()
 
 const loginType = ref<'captcha' | 'password'>('captcha')
 const showPassword = ref(false)
 const countdown = ref(0)
+
+// 表单验证
+const {
+  errors: formErrors,
+  touched: formTouched,
+  validate,
+  validateField,
+  touch,
+  getFieldError
+} = useFormValidation({
+  email: commonRules.email,
+  password: commonRules.password
+})
 
 const captchaForm = ref({
   email: '',
@@ -226,14 +255,27 @@ const passwordForm = ref({
   remember: true
 })
 
+// 邮箱格式验证
+const isEmailValid = computed(() => {
+  const email = loginType.value === 'captcha' ? captchaForm.value.email : passwordForm.value.email
+  return email && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
+})
+
+// 验证码发送状态
+const canSendCaptcha = computed(() => {
+  return isEmailValid.value && countdown.value === 0
+})
+
 // Send verification code
 const sendCaptcha = async () => {
-  if (!captchaForm.value.email || !captchaForm.value.email.includes('@')) {
-    return
-  }
+  if (!canSendCaptcha.value) return
+
+  touch('email')
+  if (!validateField('email', captchaForm.value.email)) return
 
   const result = await authStore.sendCaptcha(captchaForm.value.email)
   if (result.success) {
+    success('验证码已发送')
     countdown.value = 60
     const timer = setInterval(() => {
       countdown.value--
@@ -246,6 +288,11 @@ const sendCaptcha = async () => {
 
 // Captcha login
 const handleCaptchaLogin = async () => {
+  if (!captchaForm.value.email || !captchaForm.value.code) return
+
+  touch('email')
+  if (!validateField('email', captchaForm.value.email)) return
+
   const result = await authStore.loginByCaptcha({
     email: captchaForm.value.email,
     captchaCode: captchaForm.value.code,
@@ -253,12 +300,20 @@ const handleCaptchaLogin = async () => {
   })
 
   if (result.success) {
+    success('登录成功')
     navigateTo('/')
   }
 }
 
 // Password login
 const handlePasswordLogin = async () => {
+  if (!passwordForm.value.email || !passwordForm.value.password) return
+
+  touch('email')
+  touch('password')
+  if (!validateField('email', passwordForm.value.email)) return
+  if (!validateField('password', passwordForm.value.password)) return
+
   const result = await authStore.loginByPassword({
     email: passwordForm.value.email,
     password: passwordForm.value.password,
@@ -266,11 +321,12 @@ const handlePasswordLogin = async () => {
   })
 
   if (result.success) {
+    success('登录成功')
     navigateTo('/')
   }
 }
 
-// Guest mode - redirect to guest query page
+// Guest mode
 const handleGuestMode = () => {
   navigateTo('/guest-query')
 }
@@ -284,5 +340,11 @@ useHead({
 .neon-text {
   text-shadow: 0 0 20px rgba(0, 212, 255, 0.5),
                0 0 40px rgba(0, 212, 255, 0.3);
+}
+
+/* 输入框错误状态 */
+.input-error {
+  border-color: #ef4444 !important;
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1);
 }
 </style>
